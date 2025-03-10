@@ -1,0 +1,9 @@
+tmp/
+debug/
+.*/
+
+*.exe
+*.txt
+*.ppm
+*.jpg
+*.png
