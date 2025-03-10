@@ -83,6 +83,7 @@ public:
   static Vec3 white() { return Vec3(1, 1, 1); }
 };
 
+#include "constant.h"
 
 #include <cmath>
 #include <algorithm>
@@ -154,8 +155,6 @@ inline Vec3 Vec3::random_unit_vec() {
           + static_cast<float>(rand()) / RAND_MAX / RAND_MAX;
   float v = static_cast<float>(rand()) / RAND_MAX
           + static_cast<float>(rand()) / RAND_MAX / RAND_MAX;
-
-  constexpr float CONSTANT_PI = 3.14159265358979323846f;
 
   float theta = 2.0f * CONSTANT_PI * u;
   float phi = acos(2.0f * v - 1.0f);
