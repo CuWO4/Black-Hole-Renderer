@@ -5,12 +5,13 @@
 
 class Ray {
 public:
-  Ray(Vec3 start, Vec3 end);
-  Vec3 position(float t);
+  Ray(Vec3 start, Vec3 direction);
+  virtual void step(float dl);
+  Vec3 get_position();
 
-private:
-  Vec3 start, end;
-  Vec3 e;
+protected:
+  Vec3 start, direction;
+  Vec3 position;
 };
 
 #endif

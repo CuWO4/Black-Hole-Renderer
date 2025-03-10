@@ -1,8 +1,12 @@
 #include "include/ray.h"
 
-Ray::Ray(Vec3 start, Vec3 end)
-  : start{start}, end{end}, e{(end - start).unit()} {}
+Ray::Ray(Vec3 start, Vec3 direction)
+  : start{start}, direction{direction.unit()}, position{start} {}
 
-Vec3 Ray::position(float t) {
-  return start + t * e;
+void Ray::step(float dl) {
+  position += dl * direction;
+}
+
+Vec3 Ray::get_position() { 
+  return position;
 }
