@@ -1,10 +1,9 @@
 #ifndef PPM_H_
 #define PPM_H_
 
-#include "vec3.h"
+#include "vec3.hpp"
 
 #include <string>
-#include <cstdint>
 #include <array>
 
 template <size_t width, size_t height>
