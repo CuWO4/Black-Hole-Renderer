@@ -16,7 +16,7 @@ constexpr float CONSTANT_Rs = 0.00232f /* ly */;
 constexpr float CONSTANT_Rs_m = 0.00232f * CONSTANT_ly /* ly */;
 
 constexpr float CONSTANT_disk_thickness = 1 /* Rs */;
-constexpr float CONSTANT_Rin = 2.5 /* Rs */;
-constexpr float CONSTANT_Rout = 12 /* Rs */;
+constexpr float CONSTANT_Rin = 3 /* Rs */;
+constexpr float CONSTANT_Rout = 8 /* Rs */;
 
 #endif
