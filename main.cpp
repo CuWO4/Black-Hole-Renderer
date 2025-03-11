@@ -1,9 +1,9 @@
 #include "include/ray.h"
-#include "include/schwarz_metric_ray.h"
 #include "include/constant.h"
+#include "include/camera.h"
+#include "include/light_cast.hpp"
 
 #include "utils/image.hpp"
-#include "utils/bar.hpp"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "lib/stb_image_write.h"
@@ -12,6 +12,15 @@
 
 constexpr float outer_range = 100.;
 constexpr int step_limit = 20000;
+
+constexpr float focal_length = 8.5e-2;
+constexpr float width = 9.6e-2;
+constexpr float camera_r = 13;
+constexpr float phi = 0.02;
+constexpr float alpha = 0.2;
+
+constexpr int height_px = 200;
+constexpr int width_px = 300;
 
 float get_dl(Vec3 pos) {
   return 0.03 * pos.l();
@@ -73,47 +82,17 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
 
 
 int main(int argc, char** argv) {
-  constexpr float focal_length = 8.5e-2;
-  constexpr float width = 9.6e-2;
-
-  constexpr int height_px = 1080;
-  constexpr int width_px = 1920;
-  constexpr float cell_length = width / width_px;
 
   /* stack is too small for allocating */
   static Image<height_px, width_px> image;
 
-  Bar bar(height_px * width_px);
+  Camera camera(focal_length, width, height_px, width_px, camera_r, phi, alpha);
 
-  constexpr float phi = 0.02;
-  constexpr float alpha = 0.2;
-
-  Vec3 camera = 13 * Vec3(cos(phi), 0, sin(phi));
-  Vec3 up_world(0, -sin(alpha), cos(alpha));
-  Vec3 forward = (Vec3::origin() - camera).unit();
-  Vec3 camera_y = (up_world ^ forward).unit();
-  Vec3 camera_x = (camera_y ^ forward).unit();
-
-  for (int i = 0; i < height_px; i++) {
-    for (int j = 0; j < width_px; j++) {
-
-      constexpr int TAA_times = 5;
-
-      Vec3 color = Vec3::zero();
-      for (int _ = 0; _ < 5; _++) {
-        Vec3 start = camera;
-        Vec3 end = camera + focal_length * (Vec3::origin() - camera).unit()
-                + camera_x * (-height_px / 2. + i + float(rand()) / RAND_MAX) * cell_length
-                + camera_y * (-width_px / 2. + j + float(rand()) / RAND_MAX) * cell_length;
-        SM_Ray ray(start, end - start, Vec3::origin());
-        color += get_color_of_ray_naive_disk(ray);
-      }
-
-      image[i][j] = color / TAA_times;
-
-      bar.step();
-    }
-  }
+  light_cast_render<height_px, width_px>(
+    image,
+    camera,
+    get_color_of_ray_naive_disk
+  );
 
   image.save_as_jpg("test.jpg");
 }
