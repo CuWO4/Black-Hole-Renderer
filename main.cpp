@@ -8,7 +8,7 @@
 #include <cmath>
 
 constexpr float outer_range = 100.;
-constexpr int step_limit = 20000000;
+constexpr int step_limit = 20000;
 
 float get_dl(Vec3 pos) {
   return 0.03 * pos.l();
@@ -42,6 +42,13 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
     }
     if (pos.l2() >= outer_range * outer_range) { 
       Vec3 background_color = Vec3::black();
+
+      float t1 = atan(pos.y / pos.x);
+      float t2 = asin(pos.z / pos.l());
+      background_color = (int(t1 / 0.01) + int(t2 / 0.01)) % 2
+        ? Vec3::blue()
+        : Vec3::red();
+
       color += alpha * background_color;
       break;
     }
@@ -63,7 +70,7 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
 
 
 int main(int argc, char** argv) {
-  constexpr float focal_length = 1e-1;
+  constexpr float focal_length = 8.5e-2;
   constexpr float width = 9.6e-2;
 
   constexpr int height_px = 1080;

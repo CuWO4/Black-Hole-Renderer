@@ -16,7 +16,7 @@ namespace Constant {
   constexpr float Rs = 0.00232f /* ly */;
   constexpr float Rs_m = 0.00232f * ly /* m */;
 
-  constexpr float disk_thickness = 0.3 /* Rs */;
+  constexpr float disk_thickness = 0.5 /* Rs */;
   constexpr float Rin = 3 /* Rs */;
   constexpr float Rout = 8 /* Rs */;
 };
