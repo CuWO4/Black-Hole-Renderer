@@ -105,5 +105,5 @@ int main(int argc, char** argv) {
     }
   }
 
-  output_ppm("test.ppm", pixels);
+  ppm::output("test.ppm", pixels);
 }

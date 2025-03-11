@@ -6,13 +6,15 @@
 #include <string>
 #include <array>
 
-template <size_t width, size_t height>
-int output_ppm(std::string file_path, std::array<std::array<Vec3, width>, height>& pixels);
-
-
+namespace ppm {
 
 template <size_t width, size_t height>
-int output_ppm(std::string file_path, std::array<std::array<Vec3, width>, height>& pixels) {
+int output(std::string file_path, std::array<std::array<Vec3, width>, height>& pixels);
+
+
+
+template <size_t width, size_t height>
+int output(std::string file_path, std::array<std::array<Vec3, width>, height>& pixels) {
   constexpr int max_rgb_value = 255;
   FILE* fp = fopen(file_path.c_str(), "w");
   fprintf(fp, "P3\n%d %d\n%d\n", width, height, max_rgb_value);
@@ -27,6 +29,8 @@ int output_ppm(std::string file_path, std::array<std::array<Vec3, width>, height
   fclose(fp);
 
   return 0;
+}
+
 }
 
 #endif
