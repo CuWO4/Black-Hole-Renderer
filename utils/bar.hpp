@@ -7,7 +7,7 @@ class Bar {
 public:
 
   Bar(int total) 
-    : total(total), current(0), last(0), 
+    : current(0), last(0), 
       per_cell((total + total_characters - 1) / total_characters) {
     putchar('[');
     for (int i = 0; i < total_characters; i++) {
@@ -28,7 +28,6 @@ public:
 private:
   static constexpr int total_characters = 50;
 
-  int total;
   int current;
   int last;
   int per_cell;
