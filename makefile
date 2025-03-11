@@ -1,6 +1,6 @@
 TARGET := main.exe
 EXTERN := cpp
-COMPILER := g++
+COMPILER := clang++
 
 COMPILE_OPTION := -Wall -O2
 # to generate dependent files #
