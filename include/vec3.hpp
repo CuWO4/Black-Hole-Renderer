@@ -127,7 +127,13 @@ inline float Vec3::l() { return std::sqrt(l2()); }
 inline float Vec3::l2() { return x * x + y * y + z * z; }
 inline Vec3 Vec3::unit() { 
   float len = l(); 
-  [[unlikely]] assert(len);
+  [[unlikely]] if (!len) {
+    printf(
+      "runtime warning: [%s:%d] try to get unit vector of a zero vector\n", 
+      __FILE__, __LINE__
+    );
+    return Vec3::i_e();
+  }
   return Vec3(x / len, y / len, z / len); 
 }
 inline float dis(Vec3 v1, Vec3 v2) {
@@ -135,7 +141,13 @@ inline float dis(Vec3 v1, Vec3 v2) {
 }
 
 inline Vec3 Vec3::proj_to(Vec3 to) { 
-  [[unlikely]] assert(to != zero());
+  [[unlikely]] if (!to.l2()) {
+    printf(
+      "runtime warning: [%s:%d] try to project to a zero vector\n", 
+      __FILE__, __LINE__
+    );
+    return *this;
+  }
   return *this % to / to.l2() * to; 
 }
 inline float cos_angle_of(Vec3 v1, Vec3 v2) { return v1 % v2 / std::sqrt(v1.l2() * v2.l2()); }
