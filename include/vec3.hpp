@@ -36,17 +36,17 @@ public:
   float l();
   float l2();
   Vec3 unit();
-  friend float dis(Vec3 v1, Vec3 v2);
+  static float dis(Vec3 v1, Vec3 v2);
 
   Vec3 proj_to(Vec3 to);
-  friend float cos_angle_of(Vec3 v1, Vec3 v2);
-  friend float angle(Vec3 v1, Vec3 v2);
+  static float cos_angle_of(Vec3 v1, Vec3 v2);
+  static float angle(Vec3 v1, Vec3 v2);
 
   Vec3 reflect(Vec3 normal);
 
-  friend Vec3 abs(Vec3 v);
-  friend Vec3 floor(Vec3 v);
-  friend Vec3 ceil(Vec3 v);
+  static Vec3 abs(Vec3 v);
+  static Vec3 floor(Vec3 v);
+  static Vec3 ceil(Vec3 v);
 
   static Vec3 random_unit_vec();
 
@@ -61,8 +61,8 @@ public:
   int G(); /* [0, 255] */
   int B(); /* [0, 255] */
 
-  friend Vec3 rgb_to_hsv(Vec3 rgb);
-  friend Vec3 hsv_to_rgb(Vec3 hsv);
+  static Vec3 rgb_to_hsv(Vec3 rgb);
+  static Vec3 hsv_to_rgb(Vec3 hsv);
 
 public:
   friend std::ostream& operator<<(std::ostream& out, Vec3 v);
@@ -87,7 +87,6 @@ public:
 
 #include <cmath>
 #include <algorithm>
-#include <cassert>
 
 inline Vec3::Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
 
@@ -136,9 +135,7 @@ inline Vec3 Vec3::unit() {
   }
   return Vec3(x / len, y / len, z / len); 
 }
-inline float dis(Vec3 v1, Vec3 v2) {
-  return (v2 - v1).l();
-}
+inline float Vec3::dis(Vec3 v1, Vec3 v2) { return (v2 - v1).l(); }
 
 inline Vec3 Vec3::proj_to(Vec3 to) { 
   [[unlikely]] if (!to.l2()) {
@@ -150,17 +147,17 @@ inline Vec3 Vec3::proj_to(Vec3 to) {
   }
   return *this % to / to.l2() * to; 
 }
-inline float cos_angle_of(Vec3 v1, Vec3 v2) { return v1 % v2 / std::sqrt(v1.l2() * v2.l2()); }
-inline float angle(Vec3 v1, Vec3 v2) { return acos(cos_angle_of(v1, v2)); }
+inline float Vec3::cos_angle_of(Vec3 v1, Vec3 v2) { return v1 % v2 / std::sqrt(v1.l2() * v2.l2()); }
+inline float Vec3::angle(Vec3 v1, Vec3 v2) { return acos(cos_angle_of(v1, v2)); }
 
 inline Vec3 Vec3::reflect(Vec3 normal) {
   if (*this % normal < 0) { normal = - normal; }
   return - *this + 2 * this->proj_to(normal);
 }
 
-inline Vec3 abs(Vec3 v) { return Vec3(std::abs(v.x), std::abs(v.y), std::abs(v.z)); }
-inline Vec3 floor(Vec3 v) { return Vec3(std::floor(v.x), std::floor(v.y), std::floor(v.z)); }
-inline Vec3 ceil(Vec3 v) { return Vec3(std::ceil(v.x), std::ceil(v.y), std::ceil(v.z)); }
+inline Vec3 Vec3::abs(Vec3 v) { return Vec3(std::abs(v.x), std::abs(v.y), std::abs(v.z)); }
+inline Vec3 Vec3::floor(Vec3 v) { return Vec3(std::floor(v.x), std::floor(v.y), std::floor(v.z)); }
+inline Vec3 Vec3::ceil(Vec3 v) { return Vec3(std::ceil(v.x), std::ceil(v.y), std::ceil(v.z)); }
 
 inline Vec3 Vec3::random_unit_vec() {
   float u = static_cast<float>(rand()) / RAND_MAX 
@@ -182,7 +179,7 @@ inline int Vec3::R() { return std::min(std::max(int(r * 255.99), 0), 255); }
 inline int Vec3::G() { return std::min(std::max(int(g * 255.99), 0), 255); }
 inline int Vec3::B() { return std::min(std::max(int(b * 255.99), 0), 255); }
 
-inline Vec3 rgb_to_hsv(Vec3 rgb) {
+inline Vec3 Vec3::rgb_to_hsv(Vec3 rgb) {
   float r = rgb.r;
   float g = rgb.g;
   float b = rgb.b;
@@ -209,7 +206,7 @@ inline Vec3 rgb_to_hsv(Vec3 rgb) {
   return Vec3(h, s, v);
 }
 
-inline Vec3 hsv_to_rgb(Vec3 hsv) {
+inline Vec3 Vec3::hsv_to_rgb(Vec3 hsv) {
   float h = hsv.x;
   float s = hsv.y;
   float v = hsv.z;

@@ -30,7 +30,7 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
     if (pos.l2() < 1.5 * 1.5) {
       auto f = [](float x) { return 1 / (15 * x); };
       
-      float cos_alpha = cos_angle_of(-ray.start, pos - ray.start);
+      float cos_alpha = Vec3::cos_angle_of(-ray.start, pos - ray.start);
       float l = 1.45 - ray.start.l() * sqrt(1 / cos_alpha / cos_alpha - 1) ;
 
       Vec3 inner_color = l > 0 && f(int(f(l))) - l < 1e-2
