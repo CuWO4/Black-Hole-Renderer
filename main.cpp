@@ -11,7 +11,7 @@ constexpr float outer_range = 100.;
 constexpr int step_limit = 20000000;
 
 float get_dl(Vec3 pos) {
-  return 0.05 * pos.l();
+  return 0.03 * pos.l();
 }
 
 Vec3 get_color_of_ray_naive_disk(Ray& ray) {
@@ -27,8 +27,22 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
     step_n++
   ) {
     Vec3 pos = ray.get_position();
-    if (pos.l2() <= 1. || pos.l2() >= outer_range * outer_range) { 
-      color += alpha * Vec3::black();
+    if (pos.l2() < 1.5 * 1.5) {
+      auto f = [](float x) { return 1 / (15 * x); };
+      
+      float cos_alpha = cos_angle_of(-ray.start, pos - ray.start);
+      float l = 1.45 - ray.start.l() * sqrt(1 / cos_alpha / cos_alpha - 1) ;
+
+      Vec3 inner_color = l > 0 && f(int(f(l))) - l < 1e-2
+        ? Vec3::white() * cos(pos.z / 3)
+        : Vec3::black();
+
+      color += alpha * inner_color;
+      break;
+    }
+    if (pos.l2() >= outer_range * outer_range) { 
+      Vec3 background_color = Vec3::black();
+      color += alpha * background_color;
       break;
     }
 
@@ -38,8 +52,8 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
       abs(pos.z) < CONSTANT_disk_thickness / 2.
       && r < CONSTANT_Rout && r > CONSTANT_Rin
     ) {
-      color += alpha * 0.15 * Vec3::white() * dl;
-      alpha *= 1 - 0.05 * dl;
+      color += alpha * 0.75 * Vec3::white() * dl;
+      alpha *= 1 - 0.5 * dl;
     }
     ray.step(dl);
   }
@@ -48,13 +62,12 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
 }
 
 
-
 int main(int argc, char** argv) {
-  constexpr float focal_length = 1e-3;
-  constexpr float width = 9.6e-4;
+  constexpr float focal_length = 1e-1;
+  constexpr float width = 9.6e-2;
 
-  constexpr int height_px = 400;
-  constexpr int width_px = 600;
+  constexpr int height_px = 1080;
+  constexpr int width_px = 1920;
   constexpr float cell_length = width / width_px;
 
   /* stack is too small for allocating */
@@ -62,22 +75,32 @@ int main(int argc, char** argv) {
 
   Bar bar(height_px * width_px);
 
-  constexpr float phi = 0.1;
+  constexpr float phi = 0.02;
+  constexpr float alpha = 0.2;
 
-  Vec3 camera = 20 * Vec3(cos(phi), 0, sin(phi));
+  Vec3 camera = 13 * Vec3(cos(phi), 0, sin(phi));
+  Vec3 up_world(0, -sin(alpha), cos(alpha));
   Vec3 forward = (Vec3::origin() - camera).unit();
-  Vec3 up_world(0, 0, 1);
   Vec3 camera_y = (up_world ^ forward).unit();
   Vec3 camera_x = (camera_y ^ forward).unit();
 
   for (int i = 0; i < height_px; i++) {
     for (int j = 0; j < width_px; j++) {
-      Vec3 start = camera;
-      Vec3 end = camera + focal_length * (Vec3::origin() - camera).unit()
-               + camera_x * (-height_px / 2. + i) * cell_length
-               + camera_y * (-width_px / 2. + j) * cell_length;
-      SM_Ray ray(start, end - start, Vec3::origin());
-      pixels[i][j] = get_color_of_ray_naive_disk(ray);
+
+      constexpr int TAA_times = 5;
+
+      pixels[i][j] = Vec3::zero();
+      for (int _ = 0; _ < 5; _++) {
+        Vec3 start = camera;
+        Vec3 end = camera + focal_length * (Vec3::origin() - camera).unit()
+                + camera_x * (-height_px / 2. + i + float(rand()) / RAND_MAX) * cell_length
+                + camera_y * (-width_px / 2. + j + float(rand()) / RAND_MAX) * cell_length;
+        SM_Ray ray(start, end - start, Vec3::origin());
+        pixels[i][j] += get_color_of_ray_naive_disk(ray);
+      }
+
+      pixels[i][j] /= TAA_times;
+
       bar.step();
     }
   }

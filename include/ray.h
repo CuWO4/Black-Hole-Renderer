@@ -9,7 +9,7 @@ public:
   virtual void step(float dl);
   Vec3 get_position();
 
-protected:
+public:
   Vec3 start, direction;
   Vec3 position;
 };
