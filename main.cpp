@@ -49,8 +49,8 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
     float r = sqrt(pos.x * pos.x + pos.y * pos.y);
     float dl = get_dl(ray.get_position());
     if (
-      abs(pos.z) < CONSTANT_disk_thickness / 2.
-      && r < CONSTANT_Rout && r > CONSTANT_Rin
+      abs(pos.z) < Constant::disk_thickness / 2.
+      && r < Constant::Rout && r > Constant::Rin
     ) {
       color += alpha * 0.75 * Vec3::white() * dl;
       alpha *= 1 - 0.5 * dl;

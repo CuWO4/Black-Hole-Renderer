@@ -168,7 +168,7 @@ inline Vec3 Vec3::random_unit_vec() {
   float v = static_cast<float>(rand()) / RAND_MAX
           + static_cast<float>(rand()) / RAND_MAX / RAND_MAX;
 
-  float theta = 2.0f * CONSTANT_PI * u;
+  float theta = 2.0f * Constant::PI * u;
   float phi = acos(2.0f * v - 1.0f);
 
   float x = sin(phi) * cos(theta);
