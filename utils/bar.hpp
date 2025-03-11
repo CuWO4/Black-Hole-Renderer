@@ -25,6 +25,11 @@ public:
     }
   }
 
+  ~Bar() {
+    putchar(']');
+    putchar('\n');
+  }
+
 private:
   static constexpr int total_characters = 50;
 
