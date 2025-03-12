@@ -44,9 +44,9 @@ public:
 
   Vec3 reflect(Vec3 normal);
 
-  static Vec3 abs(Vec3 v);
-  static Vec3 floor(Vec3 v);
-  static Vec3 ceil(Vec3 v);
+  Vec3 abs();
+  Vec3 floor();
+  Vec3 ceil();
 
   static Vec3 random_unit_vec();
 
@@ -61,8 +61,8 @@ public:
   int G(); /* [0, 255] */
   int B(); /* [0, 255] */
 
-  static Vec3 rgb_to_hsv(Vec3 rgb);
-  static Vec3 hsv_to_rgb(Vec3 hsv);
+  Vec3 rgb_to_hsv(Vec3 rgb);
+  Vec3 hsv_to_rgb(Vec3 hsv);
 
 public:
   friend std::ostream& operator<<(std::ostream& out, Vec3 v);
@@ -155,9 +155,9 @@ inline Vec3 Vec3::reflect(Vec3 normal) {
   return - *this + 2 * this->proj_to(normal);
 }
 
-inline Vec3 Vec3::abs(Vec3 v) { return Vec3(std::abs(v.x), std::abs(v.y), std::abs(v.z)); }
-inline Vec3 Vec3::floor(Vec3 v) { return Vec3(std::floor(v.x), std::floor(v.y), std::floor(v.z)); }
-inline Vec3 Vec3::ceil(Vec3 v) { return Vec3(std::ceil(v.x), std::ceil(v.y), std::ceil(v.z)); }
+inline Vec3 Vec3::abs() { return Vec3(std::abs(x), std::abs(y), std::abs(z)); }
+inline Vec3 Vec3::floor() { return Vec3(std::floor(x), std::floor(y), std::floor(z)); }
+inline Vec3 Vec3::ceil() { return Vec3(std::ceil(x), std::ceil(y), std::ceil(z)); }
 
 inline Vec3 Vec3::random_unit_vec() {
   float u = static_cast<float>(rand()) / RAND_MAX 
