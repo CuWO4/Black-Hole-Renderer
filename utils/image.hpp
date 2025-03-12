@@ -1,5 +1,5 @@
-#ifndef IMAGE_H__
-#define IMAGE_H__
+#ifndef IMAGE_HPP__
+#define IMAGE_HPP__
 
 #include "../include/vec3.hpp"
 
