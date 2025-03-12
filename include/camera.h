@@ -10,9 +10,11 @@ public:
     float width,
     int height_px,
     int width_px,
-    float camera_r,   /* length from origin */
-    float phi = 0.f,  /* angle of upward rotation */
-    float alpha = 0.f /* angle of rotation along the axis */
+    Vec3 camera_pos,
+    /* i_e by default representing pointing to the origin */
+    Vec3 view_direction = Vec3::i_e(),
+    /* angle of rotation along view direction, anticlockwise as positive */
+    float alpha = 0.f
   );
 
   Vec3 get_direction_of_i_j(int i, int j);
@@ -20,12 +22,13 @@ public:
   Vec3 get_camera() { return camera; }
   Vec3 get_camera_y() { return camera_y; }
   Vec3 get_camera_x() { return camera_x; }
+  Vec3 get_view_direction() { return view_direction; }
 
 private:
   float focal_length;
   int height_px, width_px;
   float cell_length;
-  Vec3 camera, camera_y, camera_x;
+  Vec3 camera, camera_y, camera_x, view_direction;
 };
 
 #endif

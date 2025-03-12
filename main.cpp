@@ -10,18 +10,6 @@
 
 #include <cmath>
 
-constexpr float outer_range = 100.;
-constexpr int step_limit = 20000;
-
-constexpr float focal_length = 8.5e-2;
-constexpr float width = 9.6e-2;
-constexpr float camera_r = 13;
-constexpr float phi = 0.02;
-constexpr float alpha = 0.2;
-
-constexpr int height_px = 200;
-constexpr int width_px = 300;
-
 float get_dl(Vec3 pos) {
   return 0.03 * pos.l();
 }
@@ -35,7 +23,7 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
   int step_n;
   for(
     step_n = 0;
-    step_n < step_limit;
+    step_n < constant::renderer::step_limit;
     step_n++
   ) {
     Vec3 pos = ray.get_position();
@@ -52,7 +40,7 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
       color += alpha * inner_color;
       break;
     }
-    if (pos.l2() >= outer_range * outer_range) { 
+    if (pos.l2() >= constant::renderer::outer_range * constant::renderer::outer_range) { 
       Vec3 background_color = Vec3::black();
 
       float t1 = atan(pos.y / pos.x);
@@ -68,8 +56,8 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
     float r = sqrt(pos.x * pos.x + pos.y * pos.y);
     float dl = get_dl(ray.get_position());
     if (
-      abs(pos.z) < Constant::disk_thickness / 2.
-      && r < Constant::Rout && r > Constant::Rin
+      abs(pos.z) < constant::model::disk_thickness / 2.
+      && r < constant::model::Rout && r > constant::model::Rin
     ) {
       color += alpha * 0.75 * Vec3::white() * dl;
       alpha *= 1 - 0.5 * dl;
@@ -83,12 +71,25 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
 
 int main(int argc, char** argv) {
 
+  using namespace constant;
+
   /* stack is too small for allocating */
-  static Image<height_px, width_px> image;
+  static Image<image::height_px, image::width_px> image;
 
-  Camera camera(focal_length, width, height_px, width_px, camera_r, phi, alpha);
+  using namespace camera0;
 
-  light_cast_render<height_px, width_px>(
+  Camera camera(
+    focal_length, width, 
+    image::height_px,  image::width_px,
+    camera_r * Vec3(cos(phi), 0, sin(phi)),
+    Vec3(
+      cos(elevation) * cos(theta), 
+      cos(elevation) * sin(theta), 
+      sin(elevation)
+    ), alpha
+  );
+
+  light_cast_render<image::height_px, image::width_px>(
     image,
     camera,
     get_color_of_ray_naive_disk
