@@ -2,6 +2,7 @@
 #include "include/constant.h"
 #include "include/camera.h"
 #include "include/light_cast.hpp"
+#include "include/berlin_noise.h"
 
 #include "utils/image.hpp"
 
@@ -11,18 +12,35 @@
 #include <cmath>
 
 float get_dl(Vec3 pos) {
-  return 0.03 * pos.l();
+  return constant::renderer::dl0 * std::min(
+    pos.l(),
+    abs(pos.z) / constant::model::disk_thickness / 1.2f + 0.1f
+  );
 }
 
 Vec3 get_color_of_ray_naive_disk(Ray& ray) {
+  BerlinNoise shape_noise(
+    constant::model::shape_noise_detail_level, 
+    constant::model::noise_frequency0,
+    constant::model::shape_noise_detail_coef,
+    constant::model::shape_noise_superposition_intensity,
+    constant::model::shape_noise_contrast
+  );
+  BerlinNoise cloud_noise(
+    constant::model::cloud_noise_detail_level, 
+    constant::model::noise_frequency0,
+    constant::model::shape_noise_detail_coef,
+    constant::model::shape_noise_superposition_intensity,
+    constant::model::shape_noise_contrast
+  );
+  
   Vec3 color = Vec3::black();
   float alpha = 1;
 
   ray.step(get_dl(ray.get_position()) * rand() / RAND_MAX);
   
-  int step_n;
   for(
-    step_n = 0;
+    int step_n = 0;
     step_n < constant::renderer::step_limit;
     step_n++
   ) {
@@ -43,11 +61,13 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
     if (pos.l2() >= constant::renderer::outer_range * constant::renderer::outer_range) { 
       Vec3 background_color = Vec3::black();
 
+      #ifdef RED_BLUE_BACKGROUND
       float t1 = atan(pos.y / pos.x);
       float t2 = asin(pos.z / pos.l());
       background_color = (int(t1 / 0.01) + int(t2 / 0.01)) % 2
         ? Vec3::blue()
         : Vec3::red();
+      #endif
 
       color += alpha * background_color;
       break;
@@ -59,8 +79,18 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
       abs(pos.z) < constant::model::disk_thickness / 2.
       && r < constant::model::Rout && r > constant::model::Rin
     ) {
-      color += alpha * 0.75 * Vec3::white() * dl;
-      alpha *= 1 - 0.5 * dl;
+      float thickness = constant::model::disk_thickness * (0.6 + 0.4 * shape_noise.get_noise(Vec3(pos.x, pos.y, 0)));
+      float thickness_factor = std::min(1.f, 1 - abs(pos.z / thickness));
+
+      float l = std::min(constant::model::Rout - r, r - constant::model::Rin);
+      float edge_factor = 1 - 1 / (5 * l + 1);
+
+      float density = 0.7 * edge_factor * thickness_factor * cloud_noise.get_noise(pos);
+      if (density < 0) density = 0;
+      Vec3 disk_color = Vec3::white();
+
+      color += density * alpha * constant::model::disk_luminous_intensity * disk_color * dl;
+      alpha *= 1 - density * constant::model::disk_transparency * dl;
     }
     ray.step(dl);
   }

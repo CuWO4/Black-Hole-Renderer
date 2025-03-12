@@ -24,11 +24,23 @@ namespace constant {
     constexpr float disk_thickness = 0.5 /* Rs */;
     constexpr float Rin = 2.5 /* Rs */;
     constexpr float Rout = 8 /* Rs */;
+
+    constexpr float disk_luminous_intensity = 0.5;
+    constexpr float disk_transparency = 0.5;
+
+    constexpr float shape_noise_detail_coef = 3;
+    constexpr float shape_noise_superposition_intensity = 0.1;
+    constexpr float shape_noise_contrast = 80;
+
+    constexpr int shape_noise_detail_level = 4;
+    constexpr int cloud_noise_detail_level = 7;
+    constexpr float noise_frequency0 = constant::model::Rs * 500;
   }
 
   namespace renderer {
     constexpr float outer_range = 100.;
     constexpr int step_limit = 20000;
+    constexpr float dl0 = 0.15;
   }
 
   namespace camera0 {
