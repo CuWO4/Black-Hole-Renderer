@@ -18,23 +18,25 @@ namespace constant {
   namespace model {
     constexpr float M = 1.49e7f /* M_SUN */;
     constexpr float M_kg = M * physics::M_Sun;
-    constexpr float Rs = 0.00232f /* ly */;
-    constexpr float Rs_m = 0.00232f * physics::ly /* m */;
+    constexpr float Rs_m = 2. * physics::G * M * physics::M_Sun / physics::c / physics::c /* m */;
+    constexpr float Rs = Rs_m / physics::ly /* ly */;
     
-    constexpr float disk_thickness = 0.5 /* Rs */;
+    constexpr float disk_thickness = 0.8 /* Rs */;
     constexpr float Rin = 2.5 /* Rs */;
     constexpr float Rout = 8 /* Rs */;
 
-    constexpr float disk_luminous_intensity = 0.5;
-    constexpr float disk_transparency = 0.5;
+    constexpr float disk_luminous_intensity = 1.2;
+    constexpr float disk_opacity = 0.65;
 
     constexpr float shape_noise_detail_coef = 3;
     constexpr float shape_noise_superposition_intensity = 0.1;
     constexpr float shape_noise_contrast = 80;
 
-    constexpr int shape_noise_detail_level = 4;
+    constexpr int shape_noise_detail_level = 3;
     constexpr int cloud_noise_detail_level = 7;
-    constexpr float noise_frequency0 = constant::model::Rs * 500;
+    constexpr float noise_frequency0 = 1.15;
+
+    constexpr float temperature_coeff = 1.4;
   }
 
   namespace renderer {

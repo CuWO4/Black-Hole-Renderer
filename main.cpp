@@ -3,6 +3,7 @@
 #include "include/camera.h"
 #include "include/light_cast.hpp"
 #include "include/berlin_noise.h"
+#include "include/color.h"
 
 #include "utils/image.hpp"
 
@@ -83,14 +84,20 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
       float thickness_factor = std::min(1.f, 1 - abs(pos.z / thickness));
 
       float l = std::min(constant::model::Rout - r, r - constant::model::Rin);
-      float edge_factor = 1 - 1 / (5 * l + 1);
+      float edge_factor = 1 - 1 / (2.5 * l + 1);
 
       float density = 0.7 * edge_factor * thickness_factor * cloud_noise.get_noise(pos);
       if (density < 0) density = 0;
-      Vec3 disk_color = Vec3::white();
 
-      color += density * alpha * constant::model::disk_luminous_intensity * disk_color * dl;
-      alpha *= 1 - density * constant::model::disk_transparency * dl;
+      float temperature = color::get_disk_temperature(r * constant::model::Rs_m);
+      temperature = color::maximum_temperature() - 2.25 * (color::maximum_temperature() - temperature);
+      Vec3 disk_color = color::black_body_color(temperature);
+
+      auto f = [](float x) { return x; };
+      float brightness = f(1.5 * temperature / color::maximum_temperature());
+
+      color += density * brightness * alpha * constant::model::disk_luminous_intensity * disk_color * dl;
+      alpha *= 1 - density * constant::model::disk_opacity * dl;
     }
     ray.step(dl);
   }
