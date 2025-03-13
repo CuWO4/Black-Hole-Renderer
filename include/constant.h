@@ -23,7 +23,7 @@ namespace constant {
     
     constexpr float disk_thickness = 0.8 /* Rs */;
     constexpr float Rin = 2.5 /* Rs */;
-    constexpr float Rout = 8 /* Rs */;
+    constexpr float Rout = 10 /* Rs */;
 
     constexpr float disk_luminous_intensity = 1.2;
     constexpr float disk_opacity = 0.65;
@@ -48,7 +48,7 @@ namespace constant {
   namespace camera0 {
     constexpr float focal_length = 8.5e-2;
     constexpr float width = 9.6e-2;
-    constexpr float camera_r = 11;      /* distance between camera and origin */
+    constexpr float camera_r = 12;      /* distance between camera and origin */
     constexpr float phi = 0.02;         /* angle of camera and x-axis */
     constexpr float theta = 0;          /* angle of rotation of view direction along up-world */
     constexpr float elevation = 0;      /* angle of elevation */
@@ -66,8 +66,8 @@ namespace constant {
   }
 
   namespace image {
-    constexpr int height_px = 200;
-    constexpr int width_px = 300;
+    constexpr int height_px = 1080;
+    constexpr int width_px = 1920;
   }
 }
 

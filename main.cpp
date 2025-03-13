@@ -4,6 +4,7 @@
 #include "include/light_cast.hpp"
 #include "include/berlin_noise.h"
 #include "include/color.h"
+#include "include/bloom.hpp"
 
 #include "utils/image.hpp"
 
@@ -21,25 +22,25 @@ float get_dl(Vec3 pos) {
 
 Vec3 get_color_of_ray_naive_disk(Ray& ray) {
   BerlinNoise shape_noise(
-    constant::model::shape_noise_detail_level, 
+    constant::model::shape_noise_detail_level,
     constant::model::noise_frequency0,
     constant::model::shape_noise_detail_coef,
     constant::model::shape_noise_superposition_intensity,
     constant::model::shape_noise_contrast
   );
   BerlinNoise cloud_noise(
-    constant::model::cloud_noise_detail_level, 
+    constant::model::cloud_noise_detail_level,
     constant::model::noise_frequency0,
     constant::model::shape_noise_detail_coef,
     constant::model::shape_noise_superposition_intensity,
     constant::model::shape_noise_contrast
   );
-  
+
   Vec3 color = Vec3::black();
   float alpha = 1;
 
   ray.step(get_dl(ray.get_position()) * rand() / RAND_MAX);
-  
+
   for(
     int step_n = 0;
     step_n < constant::renderer::step_limit;
@@ -48,18 +49,18 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
     Vec3 pos = ray.get_position();
     if (pos.l2() < 1.5 * 1.5) {
       auto f = [](float x) { return 1 / (15 * x); };
-      
+
       float cos_alpha = Vec3::cos_angle_of(-ray.start, pos - ray.start);
       float l = 1.45 - ray.start.l() * sqrt(1 / cos_alpha / cos_alpha - 1) ;
 
       Vec3 inner_color = l > 0 && f(int(f(l))) - l < 1e-2
-        ? Vec3::white() * cos(pos.z / 3)
+        ? Vec3::white()
         : Vec3::black();
 
       color += alpha * inner_color;
       break;
     }
-    if (pos.l2() >= constant::renderer::outer_range * constant::renderer::outer_range) { 
+    if (pos.l2() >= constant::renderer::outer_range * constant::renderer::outer_range) {
       Vec3 background_color = Vec3::black();
 
       #ifdef RED_BLUE_BACKGROUND
@@ -90,7 +91,7 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
       if (density < 0) density = 0;
 
       float temperature = color::get_disk_temperature(r * constant::model::Rs_m);
-      temperature = color::maximum_temperature() - 2.25 * (color::maximum_temperature() - temperature);
+      temperature = color::maximum_temperature() - 2 * (color::maximum_temperature() - temperature);
       Vec3 disk_color = color::black_body_color(temperature);
 
       auto f = [](float x) { return x; };
@@ -112,16 +113,17 @@ int main(int argc, char** argv) {
 
   /* stack is too small for allocating */
   static Image<image::height_px, image::width_px> image;
+  static Image<image::height_px, image::width_px> buffer;
 
   using namespace camera0;
 
   Camera camera(
-    focal_length, width, 
+    focal_length, width,
     image::height_px,  image::width_px,
     camera_r * Vec3(cos(phi), 0, sin(phi)),
     Vec3(
-      cos(elevation) * cos(theta), 
-      cos(elevation) * sin(theta), 
+      cos(elevation) * cos(theta),
+      cos(elevation) * sin(theta),
       sin(elevation)
     ), alpha
   );
@@ -131,6 +133,16 @@ int main(int argc, char** argv) {
     camera,
     get_color_of_ray_naive_disk
   );
+
+  renderer_bloom(
+    buffer, image,
+    std::array<BloomConfig, 3> {
+      BloomConfig(0.4, 1 + 5 * (image::width_px / 1920.)),
+      BloomConfig(0.4, 1 + 9 * (image::width_px / 960.)),
+      BloomConfig(0.6, 1 + 17 * (image::width_px / 480.)),
+    }
+  );
+  image = buffer;
 
   image.save_as_jpg("test.jpg");
 }

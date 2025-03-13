@@ -16,7 +16,7 @@ namespace color {
       0.25
     )
     * pow((1. - std::sqrt(model::Rs_m / r * model::Rin)), 0.25)
-    * exp(-.03 * r / model::Rs_m);
+    * exp(-.025 * r / model::Rs_m);
   }
 
   float /* K */ maximum_temperature() {
