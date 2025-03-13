@@ -9,3 +9,5 @@ debug/
 *.png
 *.bmp
 *.tga
+
+!doc/*
