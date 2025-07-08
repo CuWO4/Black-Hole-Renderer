@@ -5,13 +5,18 @@
 #include "include/berlin_noise.h"
 #include "include/color.h"
 #include "include/bloom.hpp"
+#include "include/background.h"
 
 #include "utils/image.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "lib/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "lib/stb_image_write.h"
 
 #include <cmath>
+
+Background star_sky("assets/eso0932a.jpg");
 
 float get_dl(Vec3 pos) {
   return constant::renderer::dl0 * std::min(
@@ -61,7 +66,8 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
       break;
     }
     if (pos.l2() >= constant::renderer::outer_range * constant::renderer::outer_range) {
-      Vec3 background_color = Vec3::black();
+      // Vec3 background_color = Vec3::black();
+      Vec3 background_color = star_sky.sample_equirect(pos);
 
       #ifdef RED_BLUE_BACKGROUND
       float t1 = atan(pos.y / pos.x);
@@ -108,7 +114,6 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
 
 
 int main(int argc, char** argv) {
-
   using namespace constant;
 
   /* stack is too small for allocating */
