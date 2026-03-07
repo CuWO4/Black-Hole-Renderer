@@ -3,18 +3,19 @@
 SM_Ray::SM_Ray(Vec3 start, Vec3 direction, Vec3 black_hole_pos)
   : Ray{ start, direction }, black_hole_pos(black_hole_pos) {}
 
-static float tan_small_angle(float angle) {
-  return angle + angle * angle * angle / 3;
-}
-
 void SM_Ray::step(float dl) {
-  Vec3 normal = (position - black_hole_pos).unit();
-  float cos_theta = (normal ^ direction).l();
+  Vec3 r = black_hole_pos - position;
+  Vec3 normal = r.unit();
 
-  float d_theta = 1.5f / Vec3::dis(position, black_hole_pos) * dl * cos_theta * cos_theta * cos_theta / 5.5 /* why... */;
+  float h2 = (r ^ direction).l2();
 
-  Vec3 dv = tan_small_angle(d_theta) * direction ^ (direction ^ normal) / cos_theta;
-  
-  position += dl * direction;
+  // dv/ds = 3GMh^2 / c^2 r^4
+  Vec3 a = 3 * constant::physics::G * constant::model::M / constant::physics::c / constant::physics::c
+    * constant::physics::M_Sun  * h2 / r.l2() / r.l2()
+    / 3.7e10f /* some magic number for calibrating the unit system */
+    * normal;
+  Vec3 dv = a * dl;
+
   direction = (direction + dv).unit();
+  position += dl * direction;
 }

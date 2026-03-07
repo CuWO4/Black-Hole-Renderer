@@ -20,8 +20,8 @@ namespace constant {
     constexpr float M_kg = M * physics::M_Sun;
     constexpr float Rs_m = 2. * physics::G * M * physics::M_Sun / physics::c / physics::c /* m */;
     constexpr float Rs = Rs_m / physics::ly /* ly */;
-    
-    constexpr float disk_thickness = 0.8 /* Rs */;
+
+    constexpr float disk_thickness = 1.5 /* Rs */;
     constexpr float Rin = 2.5 /* Rs */;
     constexpr float Rout = 10 /* Rs */;
 
@@ -46,7 +46,7 @@ namespace constant {
   }
 
   namespace camera0 {
-    constexpr float focal_length = 8.5e-2;
+    constexpr float focal_length = 3.3e-2;
     constexpr float width = 9.6e-2;
     constexpr float camera_r = 12;      /* distance between camera and origin */
     constexpr float phi = 0.02;         /* angle of camera and x-axis */
@@ -58,7 +58,7 @@ namespace constant {
   namespace camera1 {
     constexpr float focal_length = 1.1e-1;
     constexpr float width = 9.6e-2;
-    constexpr float camera_r = 7;       /* distance between camera and origin */
+    constexpr float camera_r = 12;       /* distance between camera and origin */
     constexpr float phi = 0.1;          /* angle of camera and x-axis */
     constexpr float theta = 0.4;        /* angle of rotation of view direction along up-world */
     constexpr float elevation = 0.08;   /* angle of elevation */
@@ -66,8 +66,8 @@ namespace constant {
   }
 
   namespace image {
-    constexpr int height_px = 1080;
-    constexpr int width_px = 1920;
+    constexpr int height_px = 1080 * 2;
+    constexpr int width_px = 1920 * 2;
   }
 }
 
