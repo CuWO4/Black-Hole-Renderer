@@ -30,11 +30,11 @@ public:
       return Vec3::black();
     }
 
-    float theta = std::atan2(direction.y, direction.x); // [-pi, pi]
-    float phi = std::acos(direction.z / direction.l()); // [0, pi]
+    float theta = std::atan2(direction.y, direction.x);
+    float phi = std::acos(direction.z / direction.l());
 
-    float u = theta / (2.0f * constant::math::pi) + 0.5;
-    float v = phi / constant::math::pi;
+    float u = theta / constant::math::pi;
+    float v = phi / constant::math::pi / 2;
 
     float fx = v * width;
     float fy = u * height;
