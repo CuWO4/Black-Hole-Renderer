@@ -26,7 +26,7 @@ Camera::Camera(
 Vec3 Camera::get_direction_of_i_j(int i, int j) {
   Vec3 start = camera;
   Vec3 end = camera + focal_length * view_direction
-            + camera_x * (-height_px / 2. + i + float(rand()) / RAND_MAX) * cell_length
-            + camera_y * (-width_px / 2. + j + float(rand()) / RAND_MAX) * cell_length;
+            + camera_x * (-height_px / 2. + i + float(rand()) / static_cast<float>(RAND_MAX)) * cell_length
+            + camera_y * (-width_px / 2. + j + float(rand()) / static_cast<float>(RAND_MAX)) * cell_length;
   return (end - start).unit();
 }

@@ -26,14 +26,14 @@ float get_dl(Vec3 pos) {
 }
 
 Vec3 get_color_of_ray_naive_disk(Ray& ray) {
-  BerlinNoise shape_noise(
+  static BerlinNoise shape_noise(
     constant::model::shape_noise_detail_level,
     constant::model::noise_frequency0,
     constant::model::shape_noise_detail_coef,
     constant::model::shape_noise_superposition_intensity,
     constant::model::shape_noise_contrast
   );
-  BerlinNoise cloud_noise(
+  static BerlinNoise cloud_noise(
     constant::model::cloud_noise_detail_level,
     constant::model::noise_frequency0,
     constant::model::shape_noise_detail_coef,
@@ -44,7 +44,7 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
   Vec3 color = Vec3::black();
   float alpha = 1;
 
-  ray.step(get_dl(ray.get_position()) * rand() / RAND_MAX);
+  ray.step(get_dl(ray.get_position()) * rand() / static_cast<float>(RAND_MAX));
 
   for(
     int step_n = 0;

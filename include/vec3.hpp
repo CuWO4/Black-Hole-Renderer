@@ -160,10 +160,11 @@ inline Vec3 Vec3::floor() { return Vec3(std::floor(x), std::floor(y), std::floor
 inline Vec3 Vec3::ceil() { return Vec3(std::ceil(x), std::ceil(y), std::ceil(z)); }
 
 inline Vec3 Vec3::random_unit_vec() {
-  float u = static_cast<float>(rand()) / RAND_MAX 
-          + static_cast<float>(rand()) / RAND_MAX / RAND_MAX;
-  float v = static_cast<float>(rand()) / RAND_MAX
-          + static_cast<float>(rand()) / RAND_MAX / RAND_MAX;
+  float rand_max_f = static_cast<float>(RAND_MAX);
+  float u = static_cast<float>(rand()) / rand_max_f 
+          + static_cast<float>(rand()) / rand_max_f / rand_max_f;
+  float v = static_cast<float>(rand()) / rand_max_f
+          + static_cast<float>(rand()) / rand_max_f / rand_max_f;
 
   float theta = 2.0f * constant::math::pi * u;
   float phi = acos(2.0f * v - 1.0f);

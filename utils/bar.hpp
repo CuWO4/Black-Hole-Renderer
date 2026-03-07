@@ -21,6 +21,7 @@ public:
     current++;
     if (current > last * per_cell) {
       putchar('#');
+      std::fflush(stdout);
       last++;
     }
   }
