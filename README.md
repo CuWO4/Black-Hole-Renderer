@@ -14,8 +14,8 @@
 
 ## 效果
 
-![long shot](doc/long-shot.jpg)
-![close shot](doc/close-shot.jpg)
+![long shot](doc/long-shot.png)
+![close shot](doc/close-shot.png)
 
 ## 编译 & 使用
 
@@ -24,11 +24,31 @@ make
 make run
 ```
 
-将在项目目录生成 `test.jpg`.
+默认会在项目目录生成 `test.png`。
+
+也可以直接运行可执行文件并传参：
+
+```bash
+./debug/main.exe --ext jpg -o foo.jpg
+./debug/main.exe -o foo.png
+./debug/main.exe --conf my.conf -o out.png
+```
+
+参数说明：
+
+- `--ext png|jpg|bmp|ppm`：输出格式（默认 `png`，支持 `.png` / `jpeg` 之类输入）
+- `-o/--out PATH`：输出路径；如果未显式指定 `--ext`，会从 `PATH` 后缀自动推断
+- `--conf CONF`：保留参数，当前忽略；若传入会在 stderr 提示 reserved
+
+## 性能
+
+- 渲染：多线程 tile job（默认 50x50）动态领取，避免按大块切分导致负载不均。
+- 后处理：Bloom 高斯模糊多线程 job 并行。
+- 进度条：渲染与 Bloom 都以 job 数为总任务数更新。
 
 ## TODOs
 
-- [ ] 命令行参数解析
-- [ ] 动态参数加载
+- [x] 命令行参数解析（`--ext/-o/--conf`）
+- [ ] 动态参数加载（`--conf` 预留接口）
 - [x] 严格遵守相对论效应
-- [ ] 并行计算提升性能
+- [x] 并行计算提升性能（渲染 + Bloom）
