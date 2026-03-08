@@ -4,6 +4,14 @@
 #include "../utils/image.hpp"
 #include "../utils/bar.hpp"
 
+#include <algorithm>
+#include <atomic>
+#include <cmath>
+#include <cstddef>
+#include <mutex>
+#include <thread>
+#include <vector>
+
 struct BloomConfig {
   BloomConfig(
     float superposition_coeff,
@@ -37,45 +45,98 @@ static void gaussian_blur(
 ) {
   float radius = kernel_size / 2.;
 
-  Bar bar(Height + Width);
+  if (radius <= 0.0f) {
+    buffer = origin;
+    return;
+  }
 
   static Image<Height, Width> tmp;
 
-  for (int i = 0; i < Height; i++) {
-    for (int j = 0; j < Width; j++) {
-      Vec3 sum = Vec3::zero();
-      float weight_sum = 0.0f;
+  auto thread_count = []() -> unsigned {
+    unsigned n = std::thread::hardware_concurrency();
+    return n ? n : 1;
+  };
 
-      for (int k = -radius; k <= radius; ++k) {
-        if (i + k < 0 || i + k >= Height) continue;
+  constexpr int rows_per_job = 16;
+  constexpr int cols_per_job = 16;
 
-        float weight = std::exp(-k * k / (2.0f * radius * radius));
-        sum += origin[i + k][j] * weight;
-        weight_sum += weight;
-      }
+  const int row_jobs = ((int)Height + rows_per_job - 1) / rows_per_job;
+  const int col_jobs = ((int)Width + cols_per_job - 1) / cols_per_job;
+  const int total_jobs = row_jobs + col_jobs;
 
-      tmp[i][j] = sum / weight_sum;
-    }
+  Bar bar(total_jobs);
+  std::mutex bar_mutex;
+
+  const unsigned n_threads = thread_count();
+
+  auto step_bar = [&]() {
+    std::lock_guard<std::mutex> lock(bar_mutex);
     bar.step();
-  }
+  };
 
-  for (int j = 0; j < Width; j++) {
-    for (int i = 0; i < Height; i++) {
-      Vec3 sum = Vec3::zero();
-      float weight_sum = 0.0f;
+  auto run_phase = [&](int job_count, auto&& fn) {
+    std::atomic<int> next_job{0};
 
-      for (int k = -radius; k <= radius; ++k) {
-        if (j + k < 0 || j + k >= Width) continue;
+    auto worker = [&]() {
+      while (true) {
+        const int job = next_job.fetch_add(1, std::memory_order_relaxed);
+        if (job >= job_count) break;
 
-        float weight = std::exp(-k * k / (2.0f * radius * radius));
-        sum += tmp[i][j + k] * weight;
-        weight_sum += weight;
+        // spec: step on job claim
+        step_bar();
+        fn(job);
       }
+    };
 
-      buffer[i][j] = sum / weight_sum;
+    std::vector<std::thread> threads;
+    threads.reserve(n_threads);
+    for (unsigned t = 0; t < n_threads; t++) threads.emplace_back(worker);
+    for (auto& th : threads) th.join();
+  };
+
+  run_phase(row_jobs, [&](int job) {
+    const int i0 = job * rows_per_job;
+    const int i1 = std::min(i0 + rows_per_job, (int)Height);
+
+    for (int i = i0; i < i1; i++) {
+      for (int j = 0; j < (int)Width; j++) {
+        Vec3 sum = Vec3::zero();
+        float weight_sum = 0.0f;
+
+        for (int k = (int)-radius; k <= (int)radius; ++k) {
+          if (i + k < 0 || i + k >= (int)Height) continue;
+
+          float weight = std::exp(-k * k / (2.0f * radius * radius));
+          sum += origin[i + k][j] * weight;
+          weight_sum += weight;
+        }
+
+        tmp[i][j] = sum / weight_sum;
+      }
     }
-    bar.step();
-  }
+  });
+
+  run_phase(col_jobs, [&](int job) {
+    const int j0 = job * cols_per_job;
+    const int j1 = std::min(j0 + cols_per_job, (int)Width);
+
+    for (int j = j0; j < j1; j++) {
+      for (int i = 0; i < (int)Height; i++) {
+        Vec3 sum = Vec3::zero();
+        float weight_sum = 0.0f;
+
+        for (int k = (int)-radius; k <= (int)radius; ++k) {
+          if (j + k < 0 || j + k >= (int)Width) continue;
+
+          float weight = std::exp(-k * k / (2.0f * radius * radius));
+          sum += tmp[i][j + k] * weight;
+          weight_sum += weight;
+        }
+
+        buffer[i][j] = sum / weight_sum;
+      }
+    }
+  });
 }
 
 template <size_t Height, size_t Width, size_t Times>
