@@ -92,10 +92,17 @@ Vec3 get_color_of_ray_naive_disk(Ray& ray) {
       Vec3 disk_color = color::black_body_color(temperature);
 
       auto f = [](float x) { return x; };
-      float brightness = f(1.5 * temperature / color::maximum_temperature());
+      float brightness = f(1.5f * temperature / color::maximum_temperature());
 
-      color += density * brightness * alpha * constant::model::disk_luminous_intensity * disk_color * dl;
-      alpha *= 1 - density * constant::model::disk_opacity * dl;
+      float tau = density * constant::model::disk_opacity * dl;  // optical thickness
+      float T = std::exp(-tau);                                  // transmittance
+
+      // source function (scaled blackbody)
+      Vec3 S = constant::model::disk_luminous_intensity * brightness * disk_color;
+
+      // emission + absorption over this segment
+      color += alpha * (1.0f - T) * S;
+      alpha *= T;
     }
     ray.step(dl);
   }
