@@ -4,7 +4,9 @@ COMPILER := clang++
 
 COMPILE_OPTION := -Wall -O2
 # to generate dependent files #
-COMPILE_OPTION_DES := -MMD -MP 
+COMPILE_OPTION_DES := -MMD -MP
+
+OPT ?= -o test.png --ext png
 
 # store .o and .d files #
 TMPDIR := tmp
@@ -40,7 +42,7 @@ $(DEBUGDIR) :
 # run command #
 .PHONY : run
 run : $(DEBUGDIR)/$(TARGET)
-	./$(DEBUGDIR)/$(TARGET)
+	./$(DEBUGDIR)/$(TARGET) $(OPT)
 
 # clean command #
 .PHONY : clean
