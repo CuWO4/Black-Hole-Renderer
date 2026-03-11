@@ -9,6 +9,7 @@ debug/
 *.png
 *.bmp
 *.tga
+*.mp4
 
 !doc/*
 !assets/*

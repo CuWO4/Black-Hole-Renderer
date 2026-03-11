@@ -6,7 +6,7 @@ COMPILE_OPTION := -Wall -O2
 # to generate dependent files #
 COMPILE_OPTION_DES := -MMD -MP
 
-OPT ?= -o test.png --ext png
+OPT ?= -o test.mp4
 
 # store .o and .d files #
 TMPDIR := tmp

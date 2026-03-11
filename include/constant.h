@@ -69,6 +69,15 @@ namespace constant {
     constexpr int height_px = 1080 * 2;
     constexpr int width_px = 1920 * 2;
   }
+
+  namespace video {
+    constexpr int width_px = 1920;
+    constexpr int height_px = 1080;
+    constexpr int fps = 45;
+    constexpr int duration_seconds = 20;
+    constexpr int frame_count = fps * duration_seconds;
+    constexpr int crf = 14;
+  }
 }
 
 
