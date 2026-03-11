@@ -1,52 +1,51 @@
-TARGET := main.exe
-EXTERN := cpp
-COMPILER := clang++
+CXX := g++
+NVCC := nvcc
 
-COMPILE_OPTION := -Wall -O2
-# to generate dependent files #
-COMPILE_OPTION_DES := -MMD -MP
+UNAME_S := $(shell uname -s 2>/dev/null)
 
-OPT ?= -o test.mp4
+THREAD_FLAG :=
+NVCC_HOST_FLAGS :=
 
-# store .o and .d files #
-TMPDIR := tmp
-# store the target file #
-DEBUGDIR := debug
+ifeq ($(UNAME_S),Linux)
+	NVCC := $(if $(shell command -v nvcc 2>/dev/null),$(shell command -v nvcc 2>/dev/null),/usr/local/cuda/bin/nvcc)
+	THREAD_FLAG := -pthread
+	NVCC_HOST_FLAGS := -Xcompiler -pthread
+endif
 
-# sources, objects and dependencies #
-SRCS := $(wildcard *.$(EXTERN))
-OBJS := $(patsubst %.$(EXTERN), $(TMPDIR)/%.o, $(SRCS))
-DEPS := $(patsubst %.$(EXTERN), $(TMPDIR)/%.d, $(SRCS))
+CXXFLAGS := -O3 -std=c++17 -I. -Iinclude $(THREAD_FLAG)
+NVCCFLAGS := -O3 -std=c++17 -I. -Iinclude --expt-relaxed-constexpr --use_fast_math
+LDFLAGS :=
+CUDA_LIBS := -lcudart
 
-# link #
-$(DEBUGDIR)/$(TARGET) : $(OBJS) | $(DEBUGDIR)
-	@ echo linking...
-	$(COMPILER) $(OBJS) -o $(DEBUGDIR)/$(TARGET)
-	@ echo completed!
+OBJDIR := debug/cuda_obj
+TARGET := debug/main_cuda
 
-# compile #
-$(TMPDIR)/%.o : %.$(EXTERN) | $(TMPDIR)
-	@ echo compiling $<...
-	$(COMPILER) $< -o $@ -c $(COMPILE_OPTION) $(COMPILE_OPTION_DES)
+CPP_SRCS := \
+	main.cpp \
+	berlin_noise.cpp \
+	color.cpp \
+	stb_impl.cpp
 
-# create TMPDIR when it does not exist #
-$(TMPDIR) :
-	@ mkdir $(patsubst ./%, %, $(TMPDIR))
+CPP_OBJS := $(CPP_SRCS:%.cpp=$(OBJDIR)/%.o)
+CU_OBJS := $(OBJDIR)/cuda_video_renderer.o
 
-$(DEBUGDIR) :
-	@ mkdir $(DEBUGDIR)
+OBJS := $(CPP_OBJS) $(CU_OBJS)
 
-# files dependecies #
--include $(DEPS)
+all: $(TARGET)
 
-# run command #
-.PHONY : run
-run : $(DEBUGDIR)/$(TARGET)
-	./$(DEBUGDIR)/$(TARGET) $(OPT)
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
 
-# clean command #
-.PHONY : clean
-clean :
-	@ echo try to clean...
-	rm -r $(DEBUGDIR)/$(TARGET) $(OBJS) $(DEPS)
-	@ echo completed!
+$(CPP_OBJS): $(OBJDIR)/%.o: %.cpp | $(OBJDIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+$(OBJDIR)/cuda_video_renderer.o: cuda_video_renderer.cu | $(OBJDIR)
+	$(NVCC) $(NVCCFLAGS) -c $< -o $@
+
+$(TARGET): $(OBJS)
+	$(NVCC) -o $@ $(OBJS) $(NVCC_HOST_FLAGS) $(LDFLAGS) $(CUDA_LIBS)
+
+clean:
+	rm -rf $(OBJDIR) $(TARGET)
+
+.PHONY: all clean

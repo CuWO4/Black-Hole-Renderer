@@ -1,84 +1,81 @@
-# 黑洞渲染器
+# 黑洞视频渲染器
 
 参考:
-> 从零开始搓一个黑洞----glsl编程实战
-> <https://zhuanlan.zhihu.com/p/20536269771>
-> <https://www.shadertoy.com/view/4XcfR2>
-> Baopinsui
+
+- 从零开始搓一个黑洞 — GLSL 编程实战
+- <https://zhuanlan.zhihu.com/p/20536269771>
+- <https://www.shadertoy.com/view/4XcfR2>
+- Baopinsui
 
 ---
 
 ## 简介
 
-基于相对论的 light-casting 渲染器, 为了视觉效果引入了很多非物理的参数和机制. 
+当前仓库已经收敛成一条专用的 CUDA 视频渲染管线:
 
-当前这个分支已经改成了一个专用的视频渲染器: 
+- 只渲染单一黑洞吸积盘场景
+- 固定使用 `constant::camera0`
+- 相机绕黑洞做环绕运动
+- 光线追踪、Bloom 和 `rgb24` 打包都在 CUDA 侧完成
+- 通过 `ffmpeg + hevc_nvenc` 输出 H.265 MP4
 
-- 只渲染这一套黑洞场景
-- 固定使用 `camera0`
-- 相机绕 z 轴环绕黑洞一周
-- 输出 H.265 编码的 MP4
-- 视频分辨率, 帧率, 时长等参数直接硬编码在 `include/constant.h`
+旧的 CPU 场景渲染主路径和相关接口已经移除，当前入口就是 CUDA 视频渲染。
 
 ## 效果
 
 ![long shot](doc/long-shot.png)
 ![close shot](doc/close-shot.png)
 
-## 编译 & 使用
+## 依赖
 
-### 依赖
-
-- `clang++`
+- `g++`
+- `nvcc`
 - `make`
-- `ffmpeg`(需要带 `libx265` 编码支持)
+- `ffmpeg`，并且需要包含 `hevc_nvenc`
+- NVIDIA 驱动与 CUDA 运行时
 
-当前开发环境默认在 Linux 下运行. 
+当前开发流程默认在 Linux / WSL 下执行。
 
-### 构建
+## 构建
 
 ```bash
 make
 ```
 
-### 运行
+## 运行
 
 ```bash
-./debug/main.exe -o output.mp4
+./debug/main_cuda -o debug/final.mp4
 ```
 
-程序只接受一个输出参数: 
+程序只接受一个参数:
 
-- `-o/--out PATH`: 输出 MP4 路径
+- `-o` / `--out PATH`: 输出 MP4 路径
 
-例如: 
+渲染过程中会逐帧打印进度和 ETA。
 
-```bash
-./debug/main.exe -o debug/final.mp4
-```
+## 配置入口
 
-渲染过程中会逐帧输出进度.
+主要参数都集中在 `include/constant.h`:
 
-### 当前视频配置
+- `constant::video`: 分辨率、帧率、时长、CRF
+- `constant::output`: ffmpeg / NVENC 输出参数
+- `constant::camera0`: 相机轨道与镜头参数
+- `constant::cuda_renderer`: tile、frame batch、TAA、Bloom、双缓冲与后处理参数
+- `constant::model`: 吸积盘与噪声模型参数
 
-当前视频参数定义在 `include/constant.h` 的 `constant::video` 中. 
+## 当前渲染管线
 
-当前分支默认配置为: 
+1. CUDA kernel 直接生成每个像素/每帧的初始光线
+2. CUDA 追踪黑洞场景并写入设备端批帧缓冲
+3. CUDA 执行三层 Bloom
+4. CUDA 直接把结果打包成 `rgb24`
+5. 双缓冲异步下载到主机
+6. 独立写线程把帧送给 `ffmpeg`
+7. `hevc_nvenc` 完成最终编码
 
-- `1920x1080`
-- `30 FPS`
-- `20s`
-- `H.265 / MP4`
-- `CRF 14`
+## 调参建议
 
-如果要改最终成片参数, 直接修改 `include/constant.h` 即可. 
-
-## 性能
-
-- 渲染: 多线程 tile job(默认 50x50)动态领取, 避免按大块切分导致负载不均. 
-- 后处理: Bloom 高斯模糊多线程 job 并行. 
-
-## TODOs
-
-- [x] 严格遵守相对论效应
-- [x] 并行计算提升性能(渲染 + Bloom)
+- 想改最终成片参数，优先修改 `constant::video`
+- 想改速度/吞吐，优先修改 `constant::cuda_renderer`
+- 想改黑洞与吸积盘视觉效果，修改 `constant::model`
