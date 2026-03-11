@@ -1,5 +1,7 @@
 #include "include/camera.h"
 
+#include <cmath>
+
 Camera::Camera(
   float focal_length,
   float width,
@@ -17,10 +19,21 @@ Camera::Camera(
   focal_length(focal_length), height_px(height_px), width_px(width_px), 
   cell_length(width / width_px), camera(camera_pos)
 {
-  Vec3 up_world(0, -sin(alpha), cos(alpha));
   this->view_direction = (Vec3::origin() - camera).unit() + view_direction.unit() - Vec3::i_e();
-  camera_y = (up_world ^ this->view_direction).unit();
-  camera_x = (camera_y ^ this->view_direction).unit();
+
+  Vec3 up_world = Vec3::k_e();
+  if (std::abs(this->view_direction % up_world) > 0.999f) {
+    up_world = Vec3::j_e();
+  }
+
+  Vec3 right = (up_world ^ this->view_direction).unit();
+  Vec3 up = (this->view_direction ^ right).unit();
+
+  const float sin_alpha = std::sin(alpha);
+  const float cos_alpha = std::cos(alpha);
+
+  camera_y = (cos_alpha * right + sin_alpha * up).unit();
+  camera_x = (cos_alpha * up - sin_alpha * right).unit();
 }
 
 Vec3 Camera::get_direction_of_i_j(int i, int j) {
