@@ -81,6 +81,10 @@ struct DeviceScene {
   int cloud_y;
   int cloud_z;
 
+  int jet_x;
+  int jet_y;
+  int jet_z;
+
   int color_n;
 };
 
@@ -90,6 +94,7 @@ struct CudaAssets {
   unsigned char* d_background = nullptr;
   float* d_shape_noise = nullptr;
   float* d_cloud_noise = nullptr;
+  float* d_jet_noise = nullptr;
   DevVec3* d_color_lut = nullptr;
 
   DevVec3* d_batch_frames = nullptr;
@@ -554,6 +559,57 @@ __device__ static inline float sample_cloud_noise(
   return c0 * (1.0f - tz) + c1 * tz;
 }
 
+__device__ static inline float sample_jet_noise(
+  const float* tex, const DeviceScene& sc, float x, float y, float z
+) {
+  const float tan_half_angle = tanf(constant::model::jet_half_angle_deg * constant::math::pi / 180.0f);
+  const float jet_radius_max = constant::model::jet_length * tan_half_angle;
+  const float jet_z_min = -constant::model::jet_apex_z - constant::model::jet_length;
+  const float jet_z_max = constant::model::jet_apex_z + constant::model::jet_length;
+
+  float u = (x + jet_radius_max) / (2.0f * jet_radius_max);
+  float v = (y + jet_radius_max) / (2.0f * jet_radius_max);
+  float w = (z - jet_z_min) / (jet_z_max - jet_z_min);
+
+  u = clampf(u, 0.0f, 1.0f);
+  v = clampf(v, 0.0f, 1.0f);
+  w = clampf(w, 0.0f, 1.0f);
+
+  float fx = u * (sc.jet_x - 1);
+  float fy = v * (sc.jet_y - 1);
+  float fz = w * (sc.jet_z - 1);
+
+  int x0 = (int)fx, y0 = (int)fy, z0 = (int)fz;
+  int x1 = min(x0 + 1, sc.jet_x - 1);
+  int y1 = min(y0 + 1, sc.jet_y - 1);
+  int z1 = min(z0 + 1, sc.jet_z - 1);
+
+  float tx = fx - x0, ty = fy - y0, tz = fz - z0;
+
+  auto at = [&](int zz, int yy, int xx) -> float {
+    return tex[(zz * sc.jet_y + yy) * sc.jet_x + xx];
+  };
+
+  float c000 = at(z0, y0, x0);
+  float c100 = at(z0, y0, x1);
+  float c010 = at(z0, y1, x0);
+  float c110 = at(z0, y1, x1);
+  float c001 = at(z1, y0, x0);
+  float c101 = at(z1, y0, x1);
+  float c011 = at(z1, y1, x0);
+  float c111 = at(z1, y1, x1);
+
+  float c00 = c000 * (1.0f - tx) + c100 * tx;
+  float c10 = c010 * (1.0f - tx) + c110 * tx;
+  float c01 = c001 * (1.0f - tx) + c101 * tx;
+  float c11 = c011 * (1.0f - tx) + c111 * tx;
+
+  float c0 = c00 * (1.0f - ty) + c10 * ty;
+  float c1 = c01 * (1.0f - ty) + c11 * ty;
+
+  return c0 * (1.0f - tz) + c1 * tz;
+}
+
 __device__ static inline DevVec3 sample_disk_color(
   const DevVec3* lut, const DeviceScene& sc, float r
 ) {
@@ -619,11 +675,16 @@ __device__ static inline DevVec3 sample_background(
 }
 
 __device__ static inline float get_dl(const DeviceScene& sc, DevVec3 pos) {
-  return sc.dl0 * fminf(
-    len_v3(pos),
+  const float radial_step = len_v3(pos);
+  const float disk_step =
     fabsf(pos.z) / sc.disk_thickness / constant::cuda_renderer::dl_z_scale
-      + constant::cuda_renderer::dl_z_bias
-  );
+      + constant::cuda_renderer::dl_z_bias;
+  const float axis_distance = sqrtf(pos.x * pos.x + pos.y * pos.y);
+  const float axis_step =
+    axis_distance / constant::cuda_renderer::dl_axis_scale
+      + constant::cuda_renderer::dl_axis_bias;
+
+  return sc.dl0 * fminf(radial_step, fminf(disk_step, axis_step));
 }
 
 __device__ static inline void step_sm_ray(DevVec3& pos, DevVec3& dir, float dl) {
@@ -642,6 +703,27 @@ __device__ static inline void step_sm_ray(DevVec3& pos, DevVec3& dir, float dl) 
   pos = add_v3(pos, mul_v3(dir, dl));
 }
 
+__device__ static inline bool inside_jet_cone(DevVec3 pos) {
+  const float tan_half_angle = tanf(constant::model::jet_half_angle_deg * constant::math::pi / 180.0f);
+  const float radial = sqrtf(pos.x * pos.x + pos.y * pos.y);
+
+  const float upper_axial = pos.z - constant::model::jet_apex_z;
+  if (
+    upper_axial >= 0.0f
+    && upper_axial <= constant::model::jet_length
+    && radial <= upper_axial * tan_half_angle
+  ) {
+    return true;
+  }
+
+  const float lower_axial = -constant::model::jet_apex_z - pos.z;
+  return (
+    lower_axial >= 0.0f
+    && lower_axial <= constant::model::jet_length
+    && radial <= lower_axial * tan_half_angle
+  );
+}
+
 __device__ static DevVec3 trace_one(
   DevVec3 start,
   DevVec3 direction,
@@ -650,6 +732,7 @@ __device__ static DevVec3 trace_one(
   const unsigned char* bg,
   const float* shape_noise,
   const float* cloud_noise,
+  const float* jet_noise,
   const DevVec3* color_lut
 ) {
   DevVec3 color = make_v3(0.0f, 0.0f, 0.0f);
@@ -675,6 +758,20 @@ __device__ static DevVec3 trace_one(
 
     float r = sqrtf(pos.x * pos.x + pos.y * pos.y);
     float dl = get_dl(sc, pos);
+
+    if (inside_jet_cone(pos)) {
+      const DevVec3 jet_color = make_v3(1.0f, 1.0f, 1.0f);
+      const float jet_noise_factor =
+        1.0f + constant::model::jet_noise_intensity * (2.0f * sample_jet_noise(jet_noise, sc, pos.x, pos.y, pos.z) - 1.0f);
+      const float tau = constant::model::jet_opacity * dl;
+      const float T = expf(-tau);
+      const DevVec3 S = mul_v3(jet_color, constant::model::jet_luminous_intensity * jet_noise_factor);
+
+      color = add_v3(color, mul_v3(S, alpha * (1.0f - T)));
+      alpha *= T;
+
+      if (alpha < constant::cuda_renderer::alpha_stop_threshold) break;
+    }
 
     if (fabsf(pos.z) < sc.disk_thickness / 2.0f && r < sc.Rout && r > sc.Rin) {
       float shape = sample_shape_noise(shape_noise, sc, pos.x, pos.y);
@@ -725,6 +822,7 @@ __global__ static void render_kernel(
   const unsigned char* bg,
   const float* shape_noise,
   const float* cloud_noise,
+  const float* jet_noise,
   const DevVec3* color_lut
 ) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -758,7 +856,7 @@ __global__ static void render_kernel(
       rng_f01(state),
       rng_f01(state)
     );
-    acc = add_v3(acc, trace_one(start, dir, state, sc, bg, shape_noise, cloud_noise, color_lut));
+    acc = add_v3(acc, trace_one(start, dir, state, sc, bg, shape_noise, cloud_noise, jet_noise, color_lut));
   }
 
   const int global_index = frame_offset * frame_stride + pixel_i * constant::video::width_px + pixel_j;
@@ -927,6 +1025,14 @@ static void init_cuda_assets() {
     constant::model::shape_noise_contrast
   );
 
+  BerlinNoise jet_noise(
+    constant::model::jet_noise_detail_level,
+    constant::model::jet_noise_frequency,
+    constant::model::jet_noise_detail_coef,
+    constant::model::jet_noise_superposition_intensity,
+    constant::model::jet_noise_contrast
+  );
+
   std::vector<float> shape_lut(
     constant::cuda_renderer::shape_noise_w * constant::cuda_renderer::shape_noise_h
   );
@@ -967,6 +1073,40 @@ static void init_cuda_assets() {
     }
   }
 
+  const float tan_half_angle = tanf(constant::model::jet_half_angle_deg * constant::math::pi / 180.0f);
+  const float jet_radius_max = constant::model::jet_length * tan_half_angle;
+  const float jet_z_min = -constant::model::jet_apex_z - constant::model::jet_length;
+  const float jet_z_max = constant::model::jet_apex_z + constant::model::jet_length;
+
+  std::vector<float> jet_lut(
+    constant::cuda_renderer::jet_noise_x
+    * constant::cuda_renderer::jet_noise_y
+    * constant::cuda_renderer::jet_noise_z
+  );
+  float jet_min = 1e30f;
+  float jet_max = -1e30f;
+  for (int z = 0; z < constant::cuda_renderer::jet_noise_z; ++z) {
+    float pz = jet_z_min + (jet_z_max - jet_z_min) * (float)z
+      / (float)(constant::cuda_renderer::jet_noise_z - 1);
+    for (int y = 0; y < constant::cuda_renderer::jet_noise_y; ++y) {
+      float py = -jet_radius_max + (2.0f * jet_radius_max) * (float)y
+        / (float)(constant::cuda_renderer::jet_noise_y - 1);
+      for (int x = 0; x < constant::cuda_renderer::jet_noise_x; ++x) {
+        float px = -jet_radius_max + (2.0f * jet_radius_max) * (float)x
+          / (float)(constant::cuda_renderer::jet_noise_x - 1);
+        float value = jet_noise.get_noise(Vec3(px, py, pz));
+        jet_min = fminf(jet_min, value);
+        jet_max = fmaxf(jet_max, value);
+        jet_lut[(z * constant::cuda_renderer::jet_noise_y + y)
+          * constant::cuda_renderer::jet_noise_x + x] = value;
+      }
+    }
+  }
+  const float jet_range = fmaxf(jet_max - jet_min, 1e-6f);
+  for (float& value : jet_lut) {
+    value = (value - jet_min) / jet_range;
+  }
+
   std::vector<DevVec3> color_lut(constant::cuda_renderer::color_lut_n);
   const float max_temp = color::maximum_temperature();
   for (int i = 0; i < constant::cuda_renderer::color_lut_n; ++i) {
@@ -988,6 +1128,7 @@ static void init_cuda_assets() {
 
   CUDA_CHECK(cudaMalloc(&g.d_shape_noise, sizeof(float) * shape_lut.size()));
   CUDA_CHECK(cudaMalloc(&g.d_cloud_noise, sizeof(float) * cloud_lut.size()));
+  CUDA_CHECK(cudaMalloc(&g.d_jet_noise, sizeof(float) * jet_lut.size()));
   CUDA_CHECK(cudaMalloc(&g.d_color_lut, sizeof(DevVec3) * color_lut.size()));
 
   CUDA_CHECK(cudaMemcpy(
@@ -998,6 +1139,11 @@ static void init_cuda_assets() {
   CUDA_CHECK(cudaMemcpy(
     g.d_cloud_noise, cloud_lut.data(),
     sizeof(float) * cloud_lut.size(),
+    cudaMemcpyHostToDevice
+  ));
+  CUDA_CHECK(cudaMemcpy(
+    g.d_jet_noise, jet_lut.data(),
+    sizeof(float) * jet_lut.size(),
     cudaMemcpyHostToDevice
   ));
   CUDA_CHECK(cudaMemcpy(
@@ -1029,6 +1175,10 @@ static void init_cuda_assets() {
   g.scene.cloud_x = constant::cuda_renderer::cloud_noise_x;
   g.scene.cloud_y = constant::cuda_renderer::cloud_noise_y;
   g.scene.cloud_z = constant::cuda_renderer::cloud_noise_z;
+
+  g.scene.jet_x = constant::cuda_renderer::jet_noise_x;
+  g.scene.jet_y = constant::cuda_renderer::jet_noise_y;
+  g.scene.jet_z = constant::cuda_renderer::jet_noise_z;
 
   g.scene.color_n = constant::cuda_renderer::color_lut_n;
 
@@ -1118,6 +1268,7 @@ int render_video_cuda(FILE* video_pipe) {
           g.d_background,
           g.d_shape_noise,
           g.d_cloud_noise,
+          g.d_jet_noise,
           g.d_color_lut
         );
         CUDA_CHECK(cudaGetLastError());

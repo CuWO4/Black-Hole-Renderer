@@ -31,6 +31,18 @@ namespace constant {
     constexpr float disk_luminous_intensity = 1.2;
     constexpr float disk_opacity = 0.65;
 
+    constexpr float jet_apex_z = 3.0f;
+    constexpr float jet_half_angle_deg = 1.0f;
+    constexpr float jet_length = 80.0f;
+    constexpr float jet_luminous_intensity = 8.0f;
+    constexpr float jet_opacity = 2.5f;
+    constexpr int jet_noise_detail_level = 3;
+    constexpr float jet_noise_frequency = 6.0f;
+    constexpr float jet_noise_intensity = 1.0f;
+    constexpr float jet_noise_detail_coef = 3.0f;
+    constexpr float jet_noise_superposition_intensity = 0.3f;
+    constexpr float jet_noise_contrast = 1.0f;
+
     constexpr float shape_noise_detail_coef = 3;
     constexpr float shape_noise_superposition_intensity = 0.1;
     constexpr float shape_noise_contrast = 80;
@@ -58,7 +70,7 @@ namespace constant {
 
   namespace video {
     constexpr int width_px = 1920;
-    constexpr int height_px = 1080;
+    constexpr int height_px = 1200;
     constexpr int fps = 30;
     constexpr int duration_seconds = 180;
     constexpr int frame_count = fps * duration_seconds;
@@ -87,6 +99,9 @@ namespace constant {
     constexpr int cloud_noise_x = 256;
     constexpr int cloud_noise_y = 256;
     constexpr int cloud_noise_z = 64;
+    constexpr int jet_noise_x = 96;
+    constexpr int jet_noise_y = 96;
+    constexpr int jet_noise_z = 256;
     constexpr int color_lut_n = 4096;
 
     constexpr std::uint32_t seed = 1u;
@@ -98,6 +113,8 @@ namespace constant {
     constexpr float capture_radius = 0.9f;
     constexpr float dl_z_scale = 1.2f;
     constexpr float dl_z_bias = 0.1f;
+    constexpr float dl_axis_scale = 2.4f;
+    constexpr float dl_axis_bias = 0.2f;
     constexpr float disk_thickness_base = 0.6f;
     constexpr float disk_thickness_shape_scale = 0.4f;
     constexpr float disk_density_scale = 0.7f;
